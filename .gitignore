@@ -1,0 +1,6 @@
+# Ignore git patches
+*.patch
+
+# Ignore paths, these are synced separately
+external/*
+priv/

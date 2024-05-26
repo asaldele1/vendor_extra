@@ -1,0 +1,205 @@
+From a85068e7ed4e5faeffd66ed74a7b4edd334e14b5 Mon Sep 17 00:00:00 2001
+From: johnmart19 <johnivan19999@gmail.com>
+Date: Sat, 27 May 2023 07:43:14 +0300
+Subject: [PATCH 4/4] Native: ProducerListener: Import ON_BUFFER_DETACHED
+ Changes
+
+- Miui Camera requires it
+E CAM_MiCamAlgoInterfaceJNI: can not load library:camera_algoup_jni.xiaomi : java.lang.UnsatisfiedLinkError: dlopen failed: cannot locate symbol "_ZN7android18BnProducerListener16onBufferDetachedEi" referenced by "/system/lib64/libcamera_algoup_jni.xiaomi.so"...
+---
+ libs/gui/IProducerListener.cpp                | 30 +++++++++++++++++++
+ .../gui/bufferqueue/1.0/WProducerListener.cpp |  5 ++++
+ .../bufferqueue/2.0/H2BProducerListener.cpp   |  5 ++++
+ libs/gui/include/gui/IProducerListener.h      |  7 +++++
+ libs/gui/include/gui/Surface.h                | 11 +++++++
+ .../gui/bufferqueue/1.0/WProducerListener.h   |  2 ++
+ .../gui/bufferqueue/2.0/H2BProducerListener.h |  2 ++
+ 7 files changed, 62 insertions(+)
+
+diff --git a/libs/gui/IProducerListener.cpp b/libs/gui/IProducerListener.cpp
+index 0683087211..846eeaf8ab 100644
+--- a/libs/gui/IProducerListener.cpp
++++ b/libs/gui/IProducerListener.cpp
+@@ -25,6 +25,8 @@ enum {
+     ON_BUFFER_RELEASED = IBinder::FIRST_CALL_TRANSACTION,
+     NEEDS_RELEASE_NOTIFY,
+     ON_BUFFERS_DISCARDED,
++    // MIUI ADD
++    ON_BUFFER_DETACHED,
+ };
+ 
+ class BpProducerListener : public BpInterface<IProducerListener>
+@@ -64,6 +66,15 @@ public:
+         data.writeInt32Vector(discardedSlots);
+         remote()->transact(ON_BUFFERS_DISCARDED, data, &reply, IBinder::FLAG_ONEWAY);
+     }
++
++    // MIUI ADD: START
++    virtual void onBufferDetached(int slot) {
++        Parcel data, reply;
++        data.writeInterfaceToken(IProducerListener::getInterfaceDescriptor());
++        data.writeInt32(slot);
++        remote()->transact(ON_BUFFER_DETACHED, data, &reply, IBinder::FLAG_ONEWAY);
++    }
++    // MIUI ADD: END
+ };
+ 
+ // Out-of-line virtual method definition to trigger vtable emission in this
+@@ -88,6 +99,12 @@ public:
+     virtual void onBuffersDiscarded(const std::vector<int32_t>& discardedSlots) override {
+         return mBase->onBuffersDiscarded(discardedSlots);
+     }
++
++    // MIUI ADD: START
++    virtual void onBufferDetached(int slot) {
++        mBase->onBufferDetached(slot);
++    }
++    // MIUI ADD: END
+ };
+ 
+ IMPLEMENT_HYBRID_META_INTERFACE(ProducerListener,
+@@ -115,6 +132,14 @@ status_t BnProducerListener::onTransact(uint32_t code, const Parcel& data,
+             onBuffersDiscarded(discardedSlots);
+             return NO_ERROR;
+         }
++        // MIUI ADD: START
++        case ON_BUFFER_DETACHED:
++            int slot = 0;
++            CHECK_INTERFACE(IProducerListener, data, reply);
++            data.readInt32(&slot);
++            onBufferDetached(slot);
++            return NO_ERROR;
++        // MIUI ADD: END
+     }
+     return BBinder::onTransact(code, data, reply, flags);
+ }
+@@ -128,4 +153,9 @@ bool BnProducerListener::needsReleaseNotify() {
+ void BnProducerListener::onBuffersDiscarded(const std::vector<int32_t>& /*discardedSlots*/) {
+ }
+ 
++// MIUI ADD: START
++void BnProducerListener::onBufferDetached(int slot) {
++    ALOGE("BnProducerListener::onBufferDetached slot: %d",slot);
++}
++// MIUI ADD: END
+ } // namespace android
+diff --git a/libs/gui/bufferqueue/1.0/WProducerListener.cpp b/libs/gui/bufferqueue/1.0/WProducerListener.cpp
+index 56b64b9ddd..c578a4fe54 100644
+--- a/libs/gui/bufferqueue/1.0/WProducerListener.cpp
++++ b/libs/gui/bufferqueue/1.0/WProducerListener.cpp
+@@ -49,4 +49,9 @@ bool LWProducerListener::needsReleaseNotify() {
+ void LWProducerListener::onBuffersDiscarded(const std::vector<int32_t>& /*slots*/) {
+ }
+ 
++// MIUI ADD: START
++void LWProducerListener::onBufferDetached(int /*slot*/) {
++}
++// MIUI ADD: END
++
+ }  // namespace android
+diff --git a/libs/gui/bufferqueue/2.0/H2BProducerListener.cpp b/libs/gui/bufferqueue/2.0/H2BProducerListener.cpp
+index b2bd1172d6..e4e7df44e6 100644
+--- a/libs/gui/bufferqueue/2.0/H2BProducerListener.cpp
++++ b/libs/gui/bufferqueue/2.0/H2BProducerListener.cpp
+@@ -55,6 +55,11 @@ bool H2BProducerListener::needsReleaseNotify() {
+ void H2BProducerListener::onBuffersDiscarded(const std::vector<int32_t>& /*slots*/) {
+ }
+ 
++// MIUI ADD: START
++void H2BProducerListener::onBufferDetached(int /*slot*/) {
++}
++// MIUI ADD: END
++
+ }  // namespace utils
+ }  // namespace V2_0
+ }  // namespace bufferqueue
+diff --git a/libs/gui/include/gui/IProducerListener.h b/libs/gui/include/gui/IProducerListener.h
+index f7ffbb99ea..44b44517b3 100644
+--- a/libs/gui/include/gui/IProducerListener.h
++++ b/libs/gui/include/gui/IProducerListener.h
+@@ -49,6 +49,9 @@ public:
+     // onBuffersFreed is called from IGraphicBufferConsumer::discardFreeBuffers
+     // to notify the producer that certain free buffers are discarded by the consumer.
+     virtual void onBuffersDiscarded(const std::vector<int32_t>& slots) = 0; // Asynchronous
++
++    // MIUI ADD
++    virtual void onBufferDetached(int slot) = 0;
+ };
+ 
+ #ifndef NO_BINDER
+@@ -72,6 +75,8 @@ public:
+             Parcel* reply, uint32_t flags = 0);
+     virtual bool needsReleaseNotify();
+     virtual void onBuffersDiscarded(const std::vector<int32_t>& slots);
++    // MIUI ADD
++    virtual void onBufferDetached(int slot);
+ };
+ 
+ #else
+@@ -85,6 +90,8 @@ public:
+     virtual ~StubProducerListener();
+     virtual void onBufferReleased() {}
+     virtual bool needsReleaseNotify() { return false; }
++    // MIUI ADD
++    virtual void onBufferDetached(int /**slot**/) {}
+ };
+ 
+ } // namespace android
+diff --git a/libs/gui/include/gui/Surface.h b/libs/gui/include/gui/Surface.h
+index 599d8944a3..f1b843d152 100644
+--- a/libs/gui/include/gui/Surface.h
++++ b/libs/gui/include/gui/Surface.h
+@@ -56,6 +56,11 @@ public:
+     virtual bool needsReleaseNotify() = 0;
+ 
+     virtual void onBuffersDiscarded(const std::vector<sp<GraphicBuffer>>& buffers) = 0;
++    // MIUI ADD: START
++    virtual void onBufferDetached(int /**slot**/) {
++        //default do nothing
++    }
++    // MIUI ADD: END
+ };
+ 
+ /*
+@@ -414,6 +419,12 @@ protected:
+         }
+ 
+         virtual void onBuffersDiscarded(const std::vector<int32_t>& slots);
++
++        // MIUI ADD: START
++        virtual void onBufferDetached(int slot) {
++            mSurfaceListener->onBufferDetached(slot);
++        }
++        // MIUI ADD: END
+     private:
+         wp<Surface> mParent;
+         sp<SurfaceListener> mSurfaceListener;
+diff --git a/libs/gui/include/gui/bufferqueue/1.0/WProducerListener.h b/libs/gui/include/gui/bufferqueue/1.0/WProducerListener.h
+index 197db26444..1f18b4b3be 100644
+--- a/libs/gui/include/gui/bufferqueue/1.0/WProducerListener.h
++++ b/libs/gui/include/gui/bufferqueue/1.0/WProducerListener.h
+@@ -55,6 +55,8 @@ public:
+     void onBufferReleased() override;
+     bool needsReleaseNotify() override;
+     void onBuffersDiscarded(const std::vector<int32_t>& slots) override;
++    // MIUI ADD
++    void onBufferDetached(int slot) override;
+ };
+ 
+ }  // namespace android
+diff --git a/libs/gui/include/gui/bufferqueue/2.0/H2BProducerListener.h b/libs/gui/include/gui/bufferqueue/2.0/H2BProducerListener.h
+index 92650b701b..47360f69b4 100644
+--- a/libs/gui/include/gui/bufferqueue/2.0/H2BProducerListener.h
++++ b/libs/gui/include/gui/bufferqueue/2.0/H2BProducerListener.h
+@@ -47,6 +47,8 @@ public:
+     virtual void onBufferReleased() override;
+     virtual bool needsReleaseNotify() override;
+     virtual void onBuffersDiscarded(const std::vector<int32_t>& slots) override;
++    // MIUI ADD
++    virtual void onBufferDetached(int slot) override;
+ };
+ 
+ }  // namespace utils
+-- 
+2.30.2
+
