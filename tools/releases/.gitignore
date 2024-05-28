@@ -1,8 +1,8 @@
 # Ignore python cache
 __pycache__/
 
-# Ignore LineageOS_* repos
-LineageOS_*
+# Ignore OTA repo
+OTA
 
 # Ignore Assets
 assets/
