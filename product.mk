@@ -1,3 +1,6 @@
+# Dev keys
+include vendor/lineage-priv/keys/keys.mk
+
 # Overlays
     PRODUCT_PACKAGES += \
         RisingUpdaterOverlay$(RISING_PACKAGE_TYPE)
