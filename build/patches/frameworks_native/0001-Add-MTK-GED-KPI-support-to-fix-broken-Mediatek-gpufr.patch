@@ -1,7 +1,7 @@
-From 25c81d2c8f8ff513de206fc10d494bafa7eb60e8 Mon Sep 17 00:00:00 2001
+From 09dc63d4fe341eb2f2100940f5d61e77a60ed17c Mon Sep 17 00:00:00 2001
 From: Pierre-Hugues Husson <phh@phh.me>
 Date: Sat, 25 Nov 2023 08:15:28 -0500
-Subject: [PATCH 2/4] Add MTK GED KPI support to fix broken Mediatek gpufreq
+Subject: [PATCH 1/4] Add MTK GED KPI support to fix broken Mediatek gpufreq
 
 Mediatek GPU scheduler likes to have the timestamps of the frames to be
 able to adjust DVFS.
@@ -25,7 +25,7 @@ Signed-off-by: priiii1808 <priyanshusinghal0818@gmail.com>
  2 files changed, 205 insertions(+)
 
 diff --git a/libs/gui/Surface.cpp b/libs/gui/Surface.cpp
-index 59cd04d968..1a8c0a9716 100644
+index 086544e48a..6cfb0ab915 100644
 --- a/libs/gui/Surface.cpp
 +++ b/libs/gui/Surface.cpp
 @@ -24,6 +24,9 @@
@@ -134,7 +134,7 @@ index 59cd04d968..1a8c0a9716 100644
  }
  
  Surface::~Surface() {
-@@ -647,6 +725,36 @@ int Surface::dequeueBuffer(android_native_buffer_t** buffer, int* fenceFd) {
+@@ -668,6 +746,36 @@ int Surface::dequeueBuffer(android_native_buffer_t** buffer, int* fenceFd) {
          }
      }
  
@@ -171,7 +171,7 @@ index 59cd04d968..1a8c0a9716 100644
      if (fence->isValid()) {
          *fenceFd = fence->dup();
          if (*fenceFd == -1) {
-@@ -1090,6 +1198,60 @@ void Surface::onBufferQueuedLocked(int slot, sp<Fence> fence,
+@@ -1111,6 +1219,60 @@ void Surface::onBufferQueuedLocked(int slot, sp<Fence> fence,
      }
  
      mQueueBufferCondition.broadcast();
@@ -232,7 +232,7 @@ index 59cd04d968..1a8c0a9716 100644
  
      if (CC_UNLIKELY(atrace_is_tag_enabled(ATRACE_TAG_GRAPHICS))) {
          static gui::FenceMonitor gpuCompletionThread("GPU completion");
-@@ -1861,6 +2023,46 @@ int Surface::connect(
+@@ -1878,6 +2040,46 @@ int Surface::connect(
  
          mConsumerRunningBehind = (output.numPendingBuffers >= 2);
      }
@@ -280,10 +280,10 @@ index 59cd04d968..1a8c0a9716 100644
          mConnectedToCpu = true;
          // Clear the dirty region in case we're switching from a non-CPU API
 diff --git a/libs/gui/include/gui/Surface.h b/libs/gui/include/gui/Surface.h
-index 4ea1e0c843..599d8944a3 100644
+index 39a59e42aa..ff595dd188 100644
 --- a/libs/gui/include/gui/Surface.h
 +++ b/libs/gui/include/gui/Surface.h
-@@ -640,6 +640,9 @@ protected:
+@@ -638,6 +638,9 @@ protected:
  
      // Buffers that are successfully dequeued/attached and handed to clients
      std::unordered_set<int> mDequeuedSlots;

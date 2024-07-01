@@ -1,4 +1,4 @@
-From a85068e7ed4e5faeffd66ed74a7b4edd334e14b5 Mon Sep 17 00:00:00 2001
+From d329fde45665caba51c82524a8a4d80c826e39aa Mon Sep 17 00:00:00 2001
 From: johnmart19 <johnivan19999@gmail.com>
 Date: Sat, 27 May 2023 07:43:14 +0300
 Subject: [PATCH 4/4] Native: ProducerListener: Import ON_BUFFER_DETACHED
@@ -146,7 +146,7 @@ index f7ffbb99ea..44b44517b3 100644
  
  } // namespace android
 diff --git a/libs/gui/include/gui/Surface.h b/libs/gui/include/gui/Surface.h
-index 599d8944a3..f1b843d152 100644
+index ff595dd188..dab52b25f4 100644
 --- a/libs/gui/include/gui/Surface.h
 +++ b/libs/gui/include/gui/Surface.h
 @@ -56,6 +56,11 @@ public:
@@ -161,7 +161,7 @@ index 599d8944a3..f1b843d152 100644
  };
  
  /*
-@@ -414,6 +419,12 @@ protected:
+@@ -412,6 +417,12 @@ protected:
          }
  
          virtual void onBuffersDiscarded(const std::vector<int32_t>& slots);

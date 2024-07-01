@@ -1,0 +1,40 @@
+From 55c9d421febc604a78740282931b30f4223ca954 Mon Sep 17 00:00:00 2001
+From: johnmart19 <johnivan19999@gmail.com>
+Date: Sat, 24 Dec 2022 14:12:37 +0200
+Subject: [PATCH 2/4] IPCThreadState: Workaround to improve robustness
+
+- From Xiaomi Android 13 Sources
+
+Change-Id: I818ff20b8eee8a172cfedfd39d67a9533e25b590
+Signed-off-by: Pranav Vashi <neobuddy89@gmail.com>
+---
+ libs/binder/IPCThreadState.cpp | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/libs/binder/IPCThreadState.cpp b/libs/binder/IPCThreadState.cpp
+index ef96f803c3..7551741ab3 100644
+--- a/libs/binder/IPCThreadState.cpp
++++ b/libs/binder/IPCThreadState.cpp
+@@ -694,7 +694,8 @@ void IPCThreadState::processPendingDerefs()
+             while (mPendingWeakDerefs.size() > 0) {
+                 RefBase::weakref_type* refs = mPendingWeakDerefs[0];
+                 mPendingWeakDerefs.removeAt(0);
+-                refs->decWeak(mProcess.get());
++                if (refs)
++                    refs->decWeak(mProcess.get());
+             }
+ 
+             if (mPendingStrongDerefs.size() > 0) {
+@@ -704,7 +705,8 @@ void IPCThreadState::processPendingDerefs()
+                 // the decWeak() first.
+                 BBinder* obj = mPendingStrongDerefs[0];
+                 mPendingStrongDerefs.removeAt(0);
+-                obj->decStrong(mProcess.get());
++                if (obj)
++                    obj->decStrong(mProcess.get());
+             }
+         }
+     }
+-- 
+2.30.2
+
